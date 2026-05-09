@@ -19,5 +19,18 @@ services:
     App\:
         resource: '../src/'
 
+    App\Service\AwsAiAgentService:
+        arguments:
+            $agentUrl: '%env(AWS_AI_AGENT_URL)%'
+            $apiKey: '%env(AWS_AI_AGENT_API_KEY)%'
+            $s3Bucket: '%env(AWS_S3_BUCKET)%'
+
+    App\Service\S3UploadService:
+        arguments:
+            $region: '%env(AWS_REGION)%'
+            $bucket: '%env(AWS_S3_BUCKET)%'
+            $accessKey: '%env(AWS_ACCESS_KEY_ID)%'
+            $secretKey: '%env(AWS_SECRET_ACCESS_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
