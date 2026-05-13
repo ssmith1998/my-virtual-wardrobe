@@ -21,6 +21,7 @@ final class ApiController extends AbstractController
         private readonly AwsAiAgentService $aiAgent,
         private readonly WardrobeService $wardrobeService,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly ManagerRegistry $doctrine,
     ) {
     }
 
@@ -41,15 +42,18 @@ final class ApiController extends AbstractController
     }
 
     #[Route('/api/register', name: 'app_register', methods: ['POST'])]
-    public function register(Request $request, ManagerRegistry $doctrine): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $data = [
+            'email' => $request->email,
+            'password' => $request->password,
+        ];
 
         if (!isset($data['email'], $data['password'])) {
             return $this->json(['error' => 'Missing required fields: email, password'], 400);
         }
 
-        $userRepository = $doctrine->getRepository(User::class);
+        $userRepository = $this->doctrine->getRepository(User::class);
         if ($userRepository->findOneByEmail($data['email'])) {
             return $this->json(['error' => 'User already exists'], 409);
         }
@@ -58,7 +62,7 @@ final class ApiController extends AbstractController
         $user->setEmail($data['email']);
         $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));
 
-        $entityManager = $doctrine->getManager();
+        $entityManager = $this->doctrine->getManager();
         $entityManager->persist($user);
         $entityManager->flush();
 
@@ -69,35 +73,28 @@ final class ApiController extends AbstractController
     }
 
     #[Route('/api/wardrobe', name: 'app_wardrobe_list', methods: ['GET'])]
-    public function listWardrobe(ManagerRegistry $doctrine): JsonResponse
+    public function listWardrobe(): JsonResponse
     {
         $user = $this->getUser();
-        $items = $doctrine->getRepository(ClothingItem::class)->findBy(['user' => $user]);
+        $items = $this->doctrine->getRepository(ClothingItem::class)->findBy(['user' => $user]);
 
-        return $this->json(array_map([$this, 'serializeClothingItem'], $items));
+        return $this->json(array_map([$this->wardrobeService, 'getClothingItemData'], $items));
     }
 
     #[Route('/api/wardrobe', name: 'app_wardrobe_create', methods: ['POST'])]
-    public function createWardrobeItem(Request $request): JsonResponse
+    public function createWardrobeItem(#[MapRequestPayload] WardrobeItemRequest $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-
-        if (!isset($data['name'], $data['type'])) {
-            return $this->json(['error' => 'Missing required fields: name, type'], 400);
-        }
-
         $user = $this->getUser();
-        $item = $this->wardrobeService->createItem($user, $data);
+        $item = $this->wardrobeService->createItem($user, $request);
 
-        return $this->json($this->serializeClothingItem($item), 201);
+        return $this->json($this->wardrobeService->getClothingItemData($item), 201);
     }
 
-    #[Route('/api/wardrobe/{id}/image', name: 'app_wardrobe_upload_image', methods: ['POST'])]
-    public function uploadWardrobeImage(int $id, Request $request): JsonResponse
+    #[Route('/api/wardrobe/{clothingItem}/image', name: 'app_wardrobe_upload_image', methods: ['POST'])]
+    public function uploadWardrobeImage(ClothingItem $clothingItem, Request $request): JsonResponse
     {
         $user = $this->getUser();
-        $item = $this->wardrobeService->findItemForUser($id, $user);
-        if (!$item) {
+        if (!$clothingItem || $clothingItem->getUser()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Clothing item not found'], 404);
         }
 
@@ -107,12 +104,12 @@ final class ApiController extends AbstractController
         }
 
         try {
-            $item = $this->wardrobeService->uploadItemImage($item, $file);
+            $item = $this->wardrobeService->uploadItemImage($clothingItem, $file);
         } catch (\Throwable $exception) {
             return $this->json(['error' => $exception->getMessage()], 500);
         }
 
-        return $this->json($this->serializeClothingItem($item));
+        return $this->json($this->wardrobeService->getClothingItemData($item));
     }
 
     #[Route('/api/outfits/recommend', name: 'app_outfits_recommend', methods: ['POST'])]
@@ -134,18 +131,5 @@ final class ApiController extends AbstractController
         }
 
         return $this->json(['recommendations' => $recommendations]);
-    }
-
-    private function serializeClothingItem(ClothingItem $item): array
-    {
-        return [
-            'id' => $item->getId(),
-            'name' => $item->getName(),
-            'type' => $item->getType(),
-            'color' => $item->getColor(),
-            'season' => $item->getSeason(),
-            'imageUrl' => $item->getImageUrl(),
-            'createdAt' => $item->getCreatedAt()->format('c'),
-        ];
     }
 }

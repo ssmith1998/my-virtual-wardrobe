@@ -16,25 +16,36 @@ final class WardrobeService
     ) {
     }
 
-    public function createItem(User $user, array $data): ClothingItem
+    public function createItem(User $user, WardrobeItemRequest $request): ClothingItem
     {
         $item = new ClothingItem();
-        $item->setName($data['name']);
-        $item->setType($data['type']);
-        $item->setColor($data['color'] ?? null);
-        $item->setSeason($data['season'] ?? null);
-        $item->setImageUrl($data['imageUrl'] ?? null);
-        $item->setUser($user);
-
-        $this->entityManager->persist($item);
-        $this->entityManager->flush();
+        $this->setClothingItemInfo($request, $item);
 
         return $item;
     }
 
-    public function updateItem(ClothingItem $item, array $data): ClothingItem
+    public function updateItem(ClothingItem $item, WardrobeItemRequest $request): ClothingItem
     {
-        if (isset($data['name'])) {
+        $this->setClothingItemInfo($request, $item);
+
+        return $item;
+    }
+
+    public function setClothingItemInfo(WardrobeItemRequest $request, ClothingItem $item): void
+    {
+         if (isset($request->name)) {
+             $item->setName($request->name);
+         }
+         if (isset($request->type)) {
+             $item->setType($request->type);
+         }
+         if (array_key_exists('color', $request)) {     
+             $item->setColor($request->color);
+         }
+         if (array_key_exists('season', $request)) {
+             $item->setSeason($request->season);
+         }
+    }
             $item->setName($data['name']);
         }
         if (isset($data['type'])) {
@@ -50,9 +61,8 @@ final class WardrobeService
             $item->setImageUrl($data['imageUrl']);
         }
 
+        $this->entityManager->persist($item);
         $this->entityManager->flush();
-
-        return $item;
     }
 
     public function uploadItemImage(ClothingItem $item, UploadedFile $file): ClothingItem
@@ -66,6 +76,21 @@ final class WardrobeService
 
     public function findItemForUser(int $id, User $user): ?ClothingItem
     {
-        return $this->entityManager->getRepository(ClothingItem::class)->findOneBy(['id' => $id, 'user' => $user]);
+        $item = $this->entityManager->getRepository(ClothingItem::class)->findOneBy(['id' => $id, 'user' => $user]);
+
+        return $this->getClothingItemData($item);
+    }
+
+       private function getClothingItemData(ClothingItem $item): array
+    {
+        return [
+            'id' => $item->getId(),
+            'name' => $item->getName(),
+            'type' => $item->getType(),
+            'color' => $item->getColor(),
+            'season' => $item->getSeason(),
+            'imageUrl' => $item->getImageUrl(),
+            'createdAt' => $item->getCreatedAt()->format('c'),
+        ];
     }
 }
