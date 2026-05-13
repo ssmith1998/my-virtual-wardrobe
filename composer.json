@@ -33,6 +33,7 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^2.1",
+        "squizlabs/php_codesniffer": "^4.0",
         "symfony/apache-pack": "*",
         "symfony/maker-bundle": "^1.67"
     },
@@ -78,8 +79,14 @@
         "post-update-cmd": [
             "@auto-scripts"
         ],
+         "check:cs": [
+            "./vendor/bin/phpcs --standard=PSR12 src"
+        ],
+        "fix:cs": [
+            "./vendor/bin/phpcbf --standard=PSR12 src"
+        ],
         "check:all": [
-            "./vendor/bin/phpstan analyse -c phpstan.dist.neon"
+            "./vendor/bin/phpstan analyse -c phpstan.dist.neon && ./vendor/bin/phpcs --standard=PSR12 src"
         ]
     },
     "conflict": {

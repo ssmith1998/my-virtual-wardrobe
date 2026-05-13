@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
-use KnpU\OAuth2ClientBundle\Client\OAuth2ClientInterface;
 use KnpU\OAuth2ClientBundle\Client\Provider\GoogleClient;
 use League\OAuth2\Client\Provider\GoogleUser;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -20,7 +19,8 @@ class GoogleController extends AbstractController
         private ClientRegistry $clientRegistry,
         private EntityManagerInterface $entityManager,
         private JWTTokenManagerInterface $jwtManager,
-    ) {}
+    ) {
+    }
 
     #[Route('/api/auth/google', name: 'connect_google_start')]
     public function connect(): RedirectResponse
@@ -82,7 +82,6 @@ class GoogleController extends AbstractController
                     'name' => $name,
                 ]
             ]);
-
         } catch (\Exception $e) {
             return $this->json(['error' => 'Authentication failed: ' . $e->getMessage()], 400);
         }

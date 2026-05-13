@@ -18,9 +18,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\CustomIdGenerator(class: UuidGenerator::class)]
     private int $id;
 
-    /** @var string $email */
+    /** @var non-empty-string $email */
     #[ORM\Column(type: 'string', length: 180, unique: true)]
-    private string $email;
+    private $email;
 
     /** @var array<string> $roles */
     #[ORM\Column(type: 'json')]

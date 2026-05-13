@@ -34,19 +34,19 @@ final class WardrobeService
 
     public function setClothingItemInfo(WardrobeItemRequest $request, ClothingItem $item): void
     {
-         if ($request->name) {
-             $item->setName($request->name);
-         }
-         if ($request->type) {
-             $item->setType($request->type);
-         }
-         if ($request->color) {     
-             $item->setColor($request->color);
-         }
-         if ($request->season) {
-             $item->setSeason($request->season);
-         }
-        
+        if ($request->name) {
+            $item->setName($request->name);
+        }
+        if ($request->type) {
+            $item->setType($request->type);
+        }
+        if ($request->color) {
+            $item->setColor($request->color);
+        }
+        if ($request->season) {
+            $item->setSeason($request->season);
+        }
+
         if ($request->type) {
             $item->setType($request->type);
         }

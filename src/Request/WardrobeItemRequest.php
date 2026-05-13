@@ -4,7 +4,6 @@ namespace App\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-
 class WardrobeItemRequest
 {
     public function __construct(

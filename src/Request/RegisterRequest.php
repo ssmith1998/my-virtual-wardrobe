@@ -11,7 +11,7 @@ class RegisterRequest
         #[Assert\Email]
         public readonly string $email,
         #[Assert\NotBlank]
-        #[Assert\Length(min: 6)]    
+        #[Assert\Length(min: 6)]
         public readonly string $password,
     ) {
     }

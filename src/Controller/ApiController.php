@@ -54,8 +54,8 @@ final class ApiController extends AbstractController
             'password' => $request->password,
         ];
 
-    
-        if ($this->userRepository->findOneBy(['email' => $data['email']]))  {
+
+        if ($this->userRepository->findOneBy(['email' => $data['email']])) {
             return $this->json(['error' => 'User already exists'], 409);
         }
 
