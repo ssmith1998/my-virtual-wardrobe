@@ -14,6 +14,14 @@ final class AwsAiAgentService
     ) {
     }
 
+    /**
+     * Undocumented function
+     *
+     * @param string $prompt
+     * @param string|null $season
+     * @param string|null $occasion
+     * @return array<string>
+     */
     public function recommendOutfits(string $prompt, ?string $season = null, ?string $occasion = null): array
     {
         $prompt = trim($prompt);
@@ -42,6 +50,7 @@ final class AwsAiAgentService
         $status = $response->getStatusCode();
 
         try {
+            /** @var array<string> $decoded */
             $decoded = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             throw new \RuntimeException(sprintf('AWS AI agent returned invalid JSON: %s', $content), 0, $exception);

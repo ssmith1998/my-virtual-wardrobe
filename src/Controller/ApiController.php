@@ -4,6 +4,9 @@ namespace App\Controller;
 
 use App\Entity\ClothingItem;
 use App\Entity\User;
+use App\Repository\UserRepository;
+use App\Request\RegisterRequest;
+use App\Request\WardrobeItemRequest;
 use App\Service\AwsAiAgentService;
 use App\Service\WardrobeService;
 use Doctrine\Persistence\ManagerRegistry;
@@ -14,6 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 
 final class ApiController extends AbstractController
 {
@@ -22,6 +26,7 @@ final class ApiController extends AbstractController
         private readonly WardrobeService $wardrobeService,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ManagerRegistry $doctrine,
+        private readonly UserRepository $userRepository,
     ) {
     }
 
@@ -36,25 +41,21 @@ final class ApiController extends AbstractController
         }
 
         return $this->json([
-            'user' => $user->getUserIdentifier(),
+            'user' => $user->getEmail(),
             'roles' => $user->getRoles(),
         ]);
     }
 
     #[Route('/api/register', name: 'app_register', methods: ['POST'])]
-    public function register(RegisterRequest $request): JsonResponse
+    public function register(#[MapRequestPayload] RegisterRequest $request): JsonResponse
     {
         $data = [
             'email' => $request->email,
             'password' => $request->password,
         ];
 
-        if (!isset($data['email'], $data['password'])) {
-            return $this->json(['error' => 'Missing required fields: email, password'], 400);
-        }
-
-        $userRepository = $this->doctrine->getRepository(User::class);
-        if ($userRepository->findOneByEmail($data['email'])) {
+    
+        if ($this->userRepository->findOneBy(['email' => $data['email']]))  {
             return $this->json(['error' => 'User already exists'], 409);
         }
 
@@ -68,7 +69,7 @@ final class ApiController extends AbstractController
 
         return $this->json([
             'message' => 'User registered successfully',
-            'user' => $user->getUserIdentifier(),
+            'user' => $user->getEmail(),
             ], 201);
     }
 
@@ -84,6 +85,7 @@ final class ApiController extends AbstractController
     #[Route('/api/wardrobe', name: 'app_wardrobe_create', methods: ['POST'])]
     public function createWardrobeItem(#[MapRequestPayload] WardrobeItemRequest $request): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
         $item = $this->wardrobeService->createItem($user, $request);
 
@@ -93,10 +95,8 @@ final class ApiController extends AbstractController
     #[Route('/api/wardrobe/{clothingItem}/image', name: 'app_wardrobe_upload_image', methods: ['POST'])]
     public function uploadWardrobeImage(ClothingItem $clothingItem, Request $request): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
-        if (!$clothingItem || $clothingItem->getUser()->getId() !== $user->getId()) {
-            return $this->json(['error' => 'Clothing item not found'], 404);
-        }
 
         $file = $request->files->get('image');
         if (!$file instanceof UploadedFile) {
@@ -115,13 +115,14 @@ final class ApiController extends AbstractController
     #[Route('/api/outfits/recommend', name: 'app_outfits_recommend', methods: ['POST'])]
     public function recommendOutfits(Request $request): JsonResponse
     {
+        /** @var array<string> $data */
         $data = json_decode($request->getContent(), true);
         $prompt = $data['prompt'] ?? null;
         $season = $data['season'] ?? null;
         $occasion = $data['occasion'] ?? null;
 
-        if (!is_string($prompt) || trim($prompt) === '') {
-            return $this->json(['error' => 'Missing required field: prompt'], 400);
+        if (is_null($prompt) || trim($prompt) === '') {
+            return $this->json(['error' => 'Prompt is required'], 400);
         }
 
         try {

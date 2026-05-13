@@ -12,7 +12,7 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 class GoogleController extends AbstractController
 {
@@ -40,8 +40,11 @@ class GoogleController extends AbstractController
             /** @var GoogleUser $googleUser */
             $googleUser = $client->fetchUser();
 
+            /** @var string $email */
             $email = $googleUser->getEmail();
+            /** @var string $googleId */
             $googleId = $googleUser->getId();
+            /** @var string $name */
             $name = $googleUser->getName();
 
             // Find existing user or create new one
@@ -49,6 +52,7 @@ class GoogleController extends AbstractController
 
             if (!$user) {
                 // Check if email already exists
+                /** @var User|null $existingUser */
                 $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
                 if ($existingUser) {
                     // Link Google account to existing user

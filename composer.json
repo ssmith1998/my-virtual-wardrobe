@@ -28,9 +28,11 @@
         "symfony/property-info": "8.0.*",
         "symfony/runtime": "8.0.*",
         "symfony/serializer": "8.0.*",
+        "symfony/validator": "8.0.*",
         "symfony/yaml": "8.0.*"
     },
     "require-dev": {
+        "phpstan/phpstan": "^2.1",
         "symfony/apache-pack": "*",
         "symfony/maker-bundle": "^1.67"
     },
@@ -75,6 +77,9 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "check:all": [
+            "./vendor/bin/phpstan analyse -c phpstan.dist.neon"
         ]
     },
     "conflict": {

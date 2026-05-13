@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Service\S3UploadService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use App\Request\WardrobeItemRequest;
 
 final class WardrobeService
 {
@@ -33,32 +34,30 @@ final class WardrobeService
 
     public function setClothingItemInfo(WardrobeItemRequest $request, ClothingItem $item): void
     {
-         if (isset($request->name)) {
+         if ($request->name) {
              $item->setName($request->name);
          }
-         if (isset($request->type)) {
+         if ($request->type) {
              $item->setType($request->type);
          }
-         if (array_key_exists('color', $request)) {     
+         if ($request->color) {     
              $item->setColor($request->color);
          }
-         if (array_key_exists('season', $request)) {
+         if ($request->season) {
              $item->setSeason($request->season);
          }
-    }
-            $item->setName($data['name']);
+        
+        if ($request->type) {
+            $item->setType($request->type);
         }
-        if (isset($data['type'])) {
-            $item->setType($data['type']);
+        if ($request->color) {
+            $item->setColor($request->color);
         }
-        if (array_key_exists('color', $data)) {
-            $item->setColor($data['color']);
+        if ($request->season) {
+            $item->setSeason($request->season);
         }
-        if (array_key_exists('season', $data)) {
-            $item->setSeason($data['season']);
-        }
-        if (array_key_exists('imageUrl', $data)) {
-            $item->setImageUrl($data['imageUrl']);
+        if ($request->imageUrl) {
+            $item->setImageUrl($request->imageUrl);
         }
 
         $this->entityManager->persist($item);
@@ -74,14 +73,28 @@ final class WardrobeService
         return $item;
     }
 
-    public function findItemForUser(int $id, User $user): ?ClothingItem
+    /**
+     * Undocumented function
+     *
+     * @param integer $id
+     * @param User $user
+     * @return array<string, int|string|null>
+     */
+    public function findItemForUser(int $id, User $user): array
     {
+        /** @var ClothingItem $item */
         $item = $this->entityManager->getRepository(ClothingItem::class)->findOneBy(['id' => $id, 'user' => $user]);
 
         return $this->getClothingItemData($item);
     }
 
-       private function getClothingItemData(ClothingItem $item): array
+    /**
+     * Undocumented function
+     *
+     * @param ClothingItem $item
+     * @return array<string, int|string|null>
+     */
+    public function getClothingItemData(ClothingItem $item): array
     {
         return [
             'id' => $item->getId(),

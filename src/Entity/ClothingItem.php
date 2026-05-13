@@ -5,7 +5,6 @@ namespace App\Entity;
 use App\Repository\ClothingItemRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Doctrine\UuidGenerator;
-use Ramsey\Uuid\UuidInterface;
 
 #[ORM\Entity(repositoryClass: ClothingItemRepository::class)]
 class ClothingItem
@@ -14,7 +13,7 @@ class ClothingItem
     #[ORM\Column(type: "uuid", unique: true)]
     #[ORM\GeneratedValue(strategy: "CUSTOM")]
     #[ORM\CustomIdGenerator(class: UuidGenerator::class)]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(type: 'string', length: 120)]
     private string $name;
@@ -43,9 +42,16 @@ class ClothingItem
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+
+        return $this;
     }
 
     public function getName(): string

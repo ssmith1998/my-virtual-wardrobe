@@ -38,6 +38,7 @@ final class S3UploadService
         $baseFolder = $userId ? sprintf('user-%d/%s', $userId, trim($folder, '/')) : trim($folder, '/');
         $filename = sprintf('%s/%s.%s', $baseFolder, bin2hex(random_bytes(12)), $extension ?: 'bin');
 
+        /** @var resource $stream */
         $stream = fopen($file->getRealPath(), 'rb');
         $this->filesystem->writeStream($filename, $stream, [
             'visibility' => 'public',
