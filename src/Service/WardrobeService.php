@@ -60,6 +60,12 @@ final class WardrobeService
             $item->setImageUrl($request->imageUrl);
         }
 
+        if ($request->user) {
+            /** @var User $user */
+            $user = $this->entityManager->getRepository(User::class)->find($request->user);
+            $item->setUser($user);
+        }
+
         $this->entityManager->persist($item);
         $this->entityManager->flush();
     }

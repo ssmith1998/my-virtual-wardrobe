@@ -30,22 +30,6 @@ final class ApiController extends AbstractController
     ) {
     }
 
-
-    #[Route('/api/login', name: 'app_login', methods: ['POST'])]
-    public function login(#[CurrentUser] ?User $user): JsonResponse
-    {
-        if (null === $user) {
-            return $this->json([
-                'message' => 'missing credentials',
-            ], 401);
-        }
-
-        return $this->json([
-            'user' => $user->getEmail(),
-            'roles' => $user->getRoles(),
-        ]);
-    }
-
     #[Route('/api/register', name: 'app_register', methods: ['POST'])]
     public function register(#[MapRequestPayload] RegisterRequest $request): JsonResponse
     {
@@ -95,8 +79,6 @@ final class ApiController extends AbstractController
     #[Route('/api/wardrobe/{clothingItem}/image', name: 'app_wardrobe_upload_image', methods: ['POST'])]
     public function uploadWardrobeImage(ClothingItem $clothingItem, Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $this->getUser();
 
         $file = $request->files->get('image');
         if (!$file instanceof UploadedFile) {

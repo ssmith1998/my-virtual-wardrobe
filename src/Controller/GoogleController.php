@@ -22,7 +22,7 @@ class GoogleController extends AbstractController
     ) {
     }
 
-    #[Route('/api/auth/google', name: 'connect_google_start')]
+    #[Route('/api/auth/google', name: 'connect_google_start', methods: ['GET'])]
     public function connect(): RedirectResponse
     {
         return $this->clientRegistry
@@ -30,7 +30,7 @@ class GoogleController extends AbstractController
             ->redirect(['openid', 'profile', 'email'], []);
     }
 
-    #[Route('/api/auth/google/check', name: 'connect_google_check')]
+    #[Route('/api/auth/google/check', name: 'connect_google_check', methods: ['GET'])]
     public function connectCheck(): JsonResponse
     {
         /** @var GoogleClient $client */
