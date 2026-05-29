@@ -15,7 +15,6 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       { path: '', name: 'Index', component: () => import('pages/IndexPage.vue') },
-      { path: '/hello', name: 'Hello', component: () => import('pages/HelloWorld.vue') }
     ],
   },
 
