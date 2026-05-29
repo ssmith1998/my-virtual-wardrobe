@@ -1,4 +1,3 @@
-import { defineRouter } from '#q-app/wrappers'
 import {
   createRouter,
   createMemoryHistory,
@@ -16,7 +15,6 @@ import routes from './routes'
  * with the Router instance.
  */
 
-export default defineRouter((/* { store, ssrContext } */) => {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history'
@@ -33,5 +31,8 @@ export default defineRouter((/* { store, ssrContext } */) => {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   })
 
-  return Router
-})
+  // Load router guards after Router is initialized
+  import('./router-guard')
+
+  export default Router
+
