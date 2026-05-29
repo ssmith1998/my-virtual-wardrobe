@@ -20,7 +20,7 @@ const password = ref('');
 const handleLogin = async () => {
   console.log('Attempting login with:', username.value, password.value);
   try {
-    await login({ username: username.value, password: password.value });
+    await login({ email: username.value, password: password.value });
   } catch (error) {
     console.error('Error during login:', error);
   }

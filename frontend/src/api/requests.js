@@ -2,7 +2,9 @@ import {get, post} from './index';
 
 export const login = async (credentials) => {
   try {
-    const response = await post('/login', credentials);
+    const response = await post('/login', credentials, {
+      withCredentials: true,
+    });
     return response;
   } catch (error) {
     console.error('Error fetching login:', error);

@@ -3,7 +3,6 @@ import axios from 'axios';
 export const instance = axios.create({
   baseURL: 'https://myvirtualwardrobe.test/api',
   timeout: 1000,
-  headers: { 'X-TOKEN': 'foobar' },
 });
 
 export const get = async (url) => {
@@ -19,7 +18,10 @@ export const get = async (url) => {
 
 export const post = async (url, data) => {
     try {
-        const response = await instance.post(url, data);
+        const response = await instance.post(url, data, {
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' },
+        });
         console.log('Response:', response.data);
         return response.data;
     } catch (error) {
