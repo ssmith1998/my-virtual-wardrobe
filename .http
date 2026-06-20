@@ -1,0 +1,5 @@
+POST https://myvirtualwardrobe.test/api/login
+<request>
+    <username>sean.smith</name>
+    <password>password</password>
+</request>

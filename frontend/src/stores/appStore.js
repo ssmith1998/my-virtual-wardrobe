@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
 import { login } from '../api/requests';
 import { openToast } from '../composables/useToast';
+import router from '../router';
+import { setItem, getItem } from '../composables/useLocalStorage';
 
 
 export const useAppStore = defineStore('app', {
   state: () => ({
-    isAuthenticated: false,
+    isAuthenticated: getItem('token') ? true : false,
     user: null,
-    token: null,
+    token: getItem('token') ?? null,
   }),
   actions: {
     async loginUser(credentials) {
@@ -16,7 +18,9 @@ export const useAppStore = defineStore('app', {
             if (response && response.token) {
                 this.setToken(response.token);
                 this.setAuthenticated(true);
+                setItem('token', response.token);
                 openToast('Login successful!', 'success');
+                router.push({ name: 'Wardrobe' });
             }
             return response;
           } catch (error) {
@@ -27,6 +31,13 @@ export const useAppStore = defineStore('app', {
             }
             throw error;
           }
+    },
+    isLoggedIn() {
+        const token = getItem('token');
+        if (token) {
+            return true;
+        }
+        return false;
     },
     setAuthenticated(value) {
       this.isAuthenticated = value;

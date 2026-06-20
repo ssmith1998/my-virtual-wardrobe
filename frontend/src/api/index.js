@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const instance = axios.create({
   baseURL: 'https://myvirtualwardrobe.test/api',
-  timeout: 1000,
+  timeout: 3000, // 3 seconds timeout
 });
 
 export const get = async (url) => {

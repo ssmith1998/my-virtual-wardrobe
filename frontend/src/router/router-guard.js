@@ -1,12 +1,13 @@
 import Router from './index'
-Router.beforeEach((to, from) => {
-     console.log('to', to);
-     console.log('from', from);
-  if (
-    to.name !== 'Login'
-  ) {
-    console.log('Checking authentication for route:', to.name);
-    // redirect the user to the login page
-    return { name: 'Login' }
+import { useAppStore } from '../stores/appStore'
+
+Router.beforeEach((to, from, next) => {
+  const appStore = useAppStore()
+  if (to.name !== 'Login' && !appStore.isAuthenticated) {
+    next({ name: 'Login' })
+  }else if (to.name === 'Login' && appStore.isAuthenticated) {
+    next({ name: 'Wardrobe' })
+  }else {
+    next()
   }
 })
