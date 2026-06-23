@@ -27,10 +27,15 @@ services:
 
     App\Service\S3UploadService:
         arguments:
-            $region: '%env(AWS_REGION)%'
-            $bucket: '%env(AWS_S3_BUCKET)%'
-            $accessKey: '%env(AWS_ACCESS_KEY_ID)%'
-            $secretKey: '%env(AWS_SECRET_ACCESS_KEY)%'
+            $cloudflarePublicUrl: '%env(CLOUDFLARE_R2_PUBLIC_URL)%'
+
+    cloudflare_r2_client:
+        class: 'AsyncAws\S3\S3Client'
+        arguments:
+            -   
+                endpoint: '%env(CLOUDFLARE_R2_ENDPOINT)%'
+                accessKeyId: '%env(CLOUDFLARE_R2_ID)%'
+                accessKeySecret: '%env(CLOUDFLARE_R2_SECRET)%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

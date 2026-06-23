@@ -8,19 +8,29 @@ use App\Service\S3UploadService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Request\WardrobeItemRequest;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\Request;
 
 final class WardrobeService
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly S3UploadService $s3UploadService,
+        private readonly Security $security,
     ) {
     }
 
-    public function createItem(User $user, WardrobeItemRequest $request): ClothingItem
+    public function createItem(User $user, Request $request): ClothingItem
     {
+        $wardrobeRequest = new WardrobeItemRequest(
+            name: $request->request->get('name') ?? null,
+            type: $request->request->get('type') ?? null,
+            color: $request->request->get('color') ?? null,
+            season: $request->request->get('season') ?? null,
+            imageUrl: $request->request->get('imageUrl') ?? null
+        );
         $item = new ClothingItem();
-        $this->setClothingItemInfo($request, $item);
+        $this->setClothingItemInfo($wardrobeRequest, $item);
 
         return $item;
     }
@@ -34,6 +44,8 @@ final class WardrobeService
 
     public function setClothingItemInfo(WardrobeItemRequest $request, ClothingItem $item): void
     {
+        /** @var User $user */
+        $user = $this->security->getUser();
         if ($request->name) {
             $item->setName($request->name);
         }
@@ -60,9 +72,8 @@ final class WardrobeService
             $item->setImageUrl($request->imageUrl);
         }
 
-        if ($request->user) {
+        if ($user) {
             /** @var User $user */
-            $user = $this->entityManager->getRepository(User::class)->find($request->user);
             $item->setUser($user);
         }
 

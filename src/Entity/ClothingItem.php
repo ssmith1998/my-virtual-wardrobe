@@ -13,7 +13,7 @@ class ClothingItem
     #[ORM\Column(type: "uuid", unique: true)]
     #[ORM\GeneratedValue(strategy: "CUSTOM")]
     #[ORM\CustomIdGenerator(class: UuidGenerator::class)]
-    private int $id;
+    private string $id;
 
     #[ORM\Column(type: 'string', length: 120)]
     private string $name;
@@ -42,12 +42,12 @@ class ClothingItem
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): int
+    public function getId(): string
     {
         return $this->id;
     }
 
-    public function setId(int $id): self
+    public function setId(string $id): self
     {
         $this->id = $id;
 

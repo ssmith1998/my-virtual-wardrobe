@@ -20,7 +20,7 @@ export const useAppStore = defineStore('app', {
                 this.setAuthenticated(true);
                 setItem('token', response.token);
                 openToast('Login successful!', 'success');
-                router.push({ name: 'Wardrobe' });
+                router.push({ name: 'wardrobe' });
             }
             return response;
           } catch (error) {

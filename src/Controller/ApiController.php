@@ -6,9 +6,10 @@ use App\Entity\ClothingItem;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Request\RegisterRequest;
-use App\Request\WardrobeItemRequest;
 use App\Service\AwsAiAgentService;
+use App\Service\S3UploadService;
 use App\Service\WardrobeService;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -21,11 +22,13 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 final class ApiController extends AbstractController
 {
     public function __construct(
+        private EntityManagerInterface $entityManager,
         private readonly AwsAiAgentService $aiAgent,
         private readonly WardrobeService $wardrobeService,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ManagerRegistry $doctrine,
         private readonly UserRepository $userRepository,
+        private readonly S3UploadService $s3UploadService,
     ) {
     }
 
@@ -60,17 +63,25 @@ final class ApiController extends AbstractController
     public function listWardrobe(): JsonResponse
     {
         $user = $this->getUser();
-        $items = $this->doctrine->getRepository(ClothingItem::class)->findBy(['user' => $user]);
+        $items = $this->doctrine->getRepository(ClothingItem::class)->findBy(['user' => $user], ['createdAt' => 'DESC']);
 
         return $this->json(array_map([$this->wardrobeService, 'getClothingItemData'], $items));
     }
 
-    #[Route('/api/wardrobe', name: 'app_wardrobe_create', methods: ['POST'])]
-    public function createWardrobeItem(#[MapRequestPayload] WardrobeItemRequest $request): JsonResponse
+    #[Route('/api/clothing-items', name: 'app_wardrobe_create', methods: ['POST'])]
+    public function createWardrobeItem(Request $request): JsonResponse
     {
+        //TODO: Handle file upload and set imageUrl in WardrobeItemRequest, 
+        //also pass file to AI service to return description which will be sent to another AI service to generate colour and other properties. 
+        //Then save the item with the generated properties and return the item data in the response.
+        $file = $request->files->get('image');
         /** @var User $user */
         $user = $this->getUser();
+        /** @var ClothingItem $item */
         $item = $this->wardrobeService->createItem($user, $request);
+        $imageUrl = $this->s3UploadService->uploadFile($file, 'wardrobe', $user->getId());
+        $item->setImageUrl($imageUrl);
+        $this->entityManager->flush();
 
         return $this->json($this->wardrobeService->getClothingItemData($item), 201);
     }

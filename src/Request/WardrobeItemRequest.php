@@ -14,8 +14,6 @@ class WardrobeItemRequest
         public readonly ?string $color = null,
         public readonly ?string $season = null,
         public readonly ?string $imageUrl = null,
-        #[Assert\NotBlank(null, 'user is required')]
-        public readonly ?int $user = null,
     ) {
     }
 }
