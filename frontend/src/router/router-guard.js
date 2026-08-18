@@ -1,13 +1,13 @@
 import Router from './index'
 import { useAppStore } from '../stores/appStore'
 
-Router.beforeEach((to, from, next) => {
+Router.beforeEach((to) => {
   const appStore = useAppStore()
   if (to.name !== 'Login' && !appStore.isAuthenticated) {
-    next({ name: 'Login' })
+    return { name: 'Login' }
   }else if (to.name === 'Login' && appStore.isAuthenticated) {
-    next({ name: 'Wardrobe' })
+    return { name: 'Wardrobe' }
   }else {
-    next()
+    return true;
   }
 })

@@ -37,6 +37,12 @@ class ClothingItem
     #[ORM\JoinColumn(nullable: false)]
     private User $user;
 
+    #[ORM\Column(nullable: true)]
+    private ?array $metaData = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $filename = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -127,6 +133,30 @@ class ClothingItem
     public function setUser(User $user): self
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getMetaData(): ?array
+    {
+        return $this->metaData;
+    }
+
+    public function setMetaData(?array $metaData): static
+    {
+        $this->metaData = $metaData;
+
+        return $this;
+    }
+
+    public function getFilename(): ?string
+    {
+        return $this->filename;
+    }
+
+    public function setFilename(string $filename): static
+    {
+        $this->filename = $filename;
 
         return $this;
     }

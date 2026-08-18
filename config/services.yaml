@@ -25,6 +25,11 @@ services:
             $apiKey: '%env(AWS_AI_AGENT_API_KEY)%'
             $s3Bucket: '%env(AWS_S3_BUCKET)%'
 
+    App\Service\VisionAiAgentService:
+        arguments:
+            $visionAgentUrl: '%env(VISION_AI_AGENT_URL)%'
+            $apiKey: '%env(VISION_AI_AGENT_API_KEY)%'
+
     App\Service\S3UploadService:
         arguments:
             $cloudflarePublicUrl: '%env(CLOUDFLARE_R2_PUBLIC_URL)%'

@@ -23,7 +23,7 @@
     const wardrobeItems = ref([]);
 
     clothingItemStore.setClothingItems();
-    
+
     watch(() => clothingItemStore.clothingItems, (newItems) => {
         wardrobeItems.value = newItems;
     }, { immediate: true });

@@ -17,7 +17,7 @@ final class S3UploadService
         $this->filesystem = $cdnStorage;
     }
 
-    public function uploadFile(UploadedFile $file, string $folder = 'wardrobe', ?string $userId = null): string
+    public function uploadFile(UploadedFile $file, string $folder = 'wardrobe', ?string $userId = null): array
     {
         $extension = pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION);
         $baseFolder = $userId ? sprintf('%s/%s', $folder, $userId) : $folder;
@@ -31,6 +31,22 @@ final class S3UploadService
         fclose($stream);
 
         // // Construct the public URL
-        return sprintf('%s/%s', $this->cloudflarePublicUrl, $filename);
+        return [
+            'url' => sprintf('%s/%s', rtrim($this->cloudflarePublicUrl, '/'), $filename),
+            'filename' => $filename,
+        ];
+    }
+
+    public function downloadFile(string $filename): string
+    {
+        $stream = $this->filesystem->readStream($filename);
+        if ($stream === false) {
+            throw new \RuntimeException(sprintf('Failed to read file: %s', $filename));
+        }
+
+        $imageContent = stream_get_contents($stream);
+        fclose($stream);
+
+        return $imageContent;
     }
 }

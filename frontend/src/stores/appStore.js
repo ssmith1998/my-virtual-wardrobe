@@ -11,6 +11,9 @@ export const useAppStore = defineStore('app', {
     user: null,
     token: getItem('token') ?? null,
   }),
+  getters: {
+    isLoggedIn: (state) => !!state.token,
+  },
   actions: {
     async loginUser(credentials) {
       try {
@@ -31,13 +34,6 @@ export const useAppStore = defineStore('app', {
             }
             throw error;
           }
-    },
-    isLoggedIn() {
-        const token = getItem('token');
-        if (token) {
-            return true;
-        }
-        return false;
     },
     setAuthenticated(value) {
       this.isAuthenticated = value;

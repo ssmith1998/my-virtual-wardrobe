@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\ClothingItem;
 use App\Entity\User;
+use App\Message\FileMetaDataMessage;
 use App\Repository\UserRepository;
 use App\Request\RegisterRequest;
 use App\Service\AwsAiAgentService;
@@ -18,17 +19,18 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ApiController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private readonly AwsAiAgentService $aiAgent,
         private readonly WardrobeService $wardrobeService,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ManagerRegistry $doctrine,
         private readonly UserRepository $userRepository,
         private readonly S3UploadService $s3UploadService,
+        private readonly MessageBusInterface $messageBus
     ) {
     }
 
@@ -71,8 +73,7 @@ final class ApiController extends AbstractController
     #[Route('/api/clothing-items', name: 'app_wardrobe_create', methods: ['POST'])]
     public function createWardrobeItem(Request $request): JsonResponse
     {
-        //TODO: Handle file upload and set imageUrl in WardrobeItemRequest, 
-        //also pass file to AI service to return description which will be sent to another AI service to generate colour and other properties. 
+        //pass file to AI service to return description which will be sent to another AI service to generate colour and other properties. 
         //Then save the item with the generated properties and return the item data in the response.
         $file = $request->files->get('image');
         /** @var User $user */
@@ -80,8 +81,11 @@ final class ApiController extends AbstractController
         /** @var ClothingItem $item */
         $item = $this->wardrobeService->createItem($user, $request);
         $imageUrl = $this->s3UploadService->uploadFile($file, 'wardrobe', $user->getId());
-        $item->setImageUrl($imageUrl);
+        $item->setImageUrl($imageUrl['url']);
+        $item->setFilename($imageUrl['filename']);
         $this->entityManager->flush();
+
+        $this->messageBus->dispatch(new FileMetaDataMessage($item->getFilename(), $user->getId()));
 
         return $this->json($this->wardrobeService->getClothingItemData($item), 201);
     }
@@ -107,20 +111,28 @@ final class ApiController extends AbstractController
     #[Route('/api/outfits/recommend', name: 'app_outfits_recommend', methods: ['POST'])]
     public function recommendOutfits(Request $request): JsonResponse
     {
-        /** @var array<string> $data */
-        $data = json_decode($request->getContent(), true);
-        $prompt = $data['prompt'] ?? null;
-        $season = $data['season'] ?? null;
-        $occasion = $data['occasion'] ?? null;
+        
+        $prompt = $request->request->get('prompt');
+
+        $image = $request->files->get('image');
+
 
         if (is_null($prompt) || trim($prompt) === '') {
             return $this->json(['error' => 'Prompt is required'], 400);
         }
 
+        if($image) {
+            if (!$image instanceof UploadedFile) {
+                return $this->json(['error' => 'Invalid image file uploaded under field "image"'], 400);
+            }
+        } else {
+            $image = null;
+        }
+
         try {
-            $recommendations = $this->aiAgent->recommendOutfits($prompt, $season, $occasion);
+            $recommendations = $this->wardrobeService->getClothingItemRecommendations($prompt, $image);
         } catch (\Throwable $exception) {
-            return $this->json(['error' => $exception->getMessage()], 502);
+            return $this->json(['error' => $exception->getMessage()], 400);
         }
 
         return $this->json(['recommendations' => $recommendations]);
