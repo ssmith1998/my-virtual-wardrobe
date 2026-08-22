@@ -26,6 +26,7 @@ final class VisionAiAgentService
             $this->arrayOfItemsToString($clothingItems)
         );
 
+
         $payload = [
             'model' => 'google/gemma-4-31B-it:cerebras',
             'messages' => [
@@ -47,6 +48,24 @@ final class VisionAiAgentService
             ],
             'max_tokens' => 500,
         ];
+
+        if(!$base64Image) {
+            $payload = [
+                'model' => 'google/gemma-4-31B-it:cerebras',
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            [
+                                'type' => 'text',
+                                "text" => $prompt
+                            ],
+                        ],
+                    ],
+                ],
+                'max_tokens' => 500,
+            ];
+        }
 
         try {
             $response = $this->httpClient->request('POST', $this->visionAgentUrl, [

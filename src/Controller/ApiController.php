@@ -114,7 +114,7 @@ final class ApiController extends AbstractController
         
         $prompt = $request->request->get('prompt');
 
-        $image = $request->files->get('image');
+        $image = $request->files->get('image', null);
 
 
         if (is_null($prompt) || trim($prompt) === '') {
@@ -125,8 +125,6 @@ final class ApiController extends AbstractController
             if (!$image instanceof UploadedFile) {
                 return $this->json(['error' => 'Invalid image file uploaded under field "image"'], 400);
             }
-        } else {
-            $image = null;
         }
 
         try {
