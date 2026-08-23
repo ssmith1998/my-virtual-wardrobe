@@ -7,7 +7,6 @@ use App\Entity\User;
 use App\Message\FileMetaDataMessage;
 use App\Repository\UserRepository;
 use App\Request\RegisterRequest;
-use App\Service\AwsAiAgentService;
 use App\Service\S3UploadService;
 use App\Service\WardrobeService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -114,25 +113,30 @@ final class ApiController extends AbstractController
         
         $prompt = $request->request->get('prompt');
 
-        $image = $request->files->get('image', null);
+        $images = $request->files->get('files', []);
 
 
         if (is_null($prompt) || trim($prompt) === '') {
             return $this->json(['error' => 'Prompt is required'], 400);
         }
 
-        if($image) {
-            if (!$image instanceof UploadedFile) {
-                return $this->json(['error' => 'Invalid image file uploaded under field "image"'], 400);
+        if(count($images) > 1) {
+            for ($i = 0; $i < count($images); $i++) {
+                if (!$images[$i] instanceof UploadedFile) {
+                    return $this->json(['error' => 'Invalid image file uploaded under field "files"'], 400);
+                }
             }
         }
 
         try {
-            $recommendations = $this->wardrobeService->getClothingItemRecommendations($prompt, $image);
+            $recommendations = $this->wardrobeService->getClothingItemRecommendations($prompt, $images);
         } catch (\Throwable $exception) {
-            return $this->json(['error' => $exception->getMessage()], 400);
+            return $this->json([
+                'error' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString()
+                ], 400);
         }
 
-        return $this->json(['recommendations' => $recommendations]);
+        return $this->json($recommendations);
     }
 }

@@ -17,6 +17,13 @@ const routes = [
       { path: '', name: 'wardrobe', component: () => import('pages/WardrobePage.vue') },
     ],
   },
+  {
+    path: '/outfit-explorer',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '', name: 'outfit-explorer', component: () => import('pages/OutfitExplorerPage.vue') },
+    ],
+  },
 
   // Always leave this as last one,
   // but you can also remove it

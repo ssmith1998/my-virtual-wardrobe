@@ -1,7 +1,7 @@
 <template>
   <q-page>
     <AppClothingItemListing />
-    <div class="top absolute-bottom text-center">
+    <div class="fixed-bottom-right">
       <q-btn color="blue" text-color="white" round icon="add" size="lg" class="q-mb-md" @click="openDialog = !openDialog"/>
     </div>
     <AppDialog v-model="openDialog" :maximized="true">
@@ -28,3 +28,12 @@ const handleItemAdded = () => {
   openToast('Item added successfully!');
 }
 </script>
+
+<style scoped>
+.fixed-bottom-right {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+</style>

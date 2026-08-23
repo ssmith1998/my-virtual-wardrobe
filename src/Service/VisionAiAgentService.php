@@ -3,8 +3,8 @@
 namespace App\Service;
 
 use App\Entity\ClothingItem;
-use Dom\Entity;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use App\Service\WeatherService;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class VisionAiAgentService
@@ -13,19 +13,47 @@ final class VisionAiAgentService
         private readonly HttpClientInterface $httpClient,
         private readonly S3UploadService $s3UploadService,
         private readonly EntityManagerInterface $entityManager,
+        private readonly WeatherService $weatherService,
         private readonly string $visionAgentUrl,
         private readonly ?string $apiKey,
     ) {
     }
-
-    public function recommendOutfits(string $prompt, array $clothingItems, ?string $base64Image = null): array
+    /**
+     * Get recommendations
+     *
+     * @param string $prompt
+     * @param array $clothingItems
+     * @param array|null $base64Images
+     * @return array
+     */
+    public function recommendOutfits(string $prompt, array $clothingItems, ?array $base64Images = []): array
     {
+
+        $currentWeather = $this->weatherService->getWeather();
+
         $prompt = sprintf(
-            "You are a fashion expert. Given the following prompt, recommend clothing items from the list of clothing items. Return only JSON with an array of clothing item recommendations. Each recommendation should have a the id of the clothing item. Prompt: %s\n\nAvailable clothing items:\n%s",
+            "You are a fashion expert. Given the following prompt, recommend clothing items from the list of clothing items.
+            Try and give full outfits if possible.
+            Return only JSON with an array of clothing item recommendations. 
+            Each recommendation should have a the id of the clothing item and a brief explanation of why it was recommended.
+             Prompt: %s\n\nAvailable clothing items:\n%s\n\nCurrent weather: %s, %s°C, Humidity: %s%%",
             $prompt,
-            $this->arrayOfItemsToString($clothingItems)
+            $this->arrayOfItemsToString($clothingItems),
+            $currentWeather['condition'],
+            $currentWeather['temperature'],
+            $currentWeather['humidity']
         );
 
+        $promptImages = [];
+
+        foreach ($base64Images as $base64Image) {
+            $promptImages[] = [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => 'data:image/jpeg;base64,' . $base64Image,
+                ],
+            ];
+        }
 
         $payload = [
             'model' => 'google/gemma-4-31B-it:cerebras',
@@ -37,19 +65,14 @@ final class VisionAiAgentService
                             'type' => 'text',
                             "text" => $prompt
                         ],
-                        [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => 'data:image/jpeg;base64,' . $base64Image,
-                        ],
-                    ],
+                        ...$promptImages
                     ],
                 ],
             ],
             'max_tokens' => 500,
         ];
 
-        if(!$base64Image) {
+        if(!$base64Images) {
             $payload = [
                 'model' => 'google/gemma-4-31B-it:cerebras',
                 'messages' => [
@@ -164,17 +187,41 @@ final class VisionAiAgentService
         }
     }
 
-    public function arrayOfItemsToString(array $items): string
+    /**
+     * converts clothing items to a string
+     *
+     * @param array $items
+     * @return string
+     */
+    private function arrayOfItemsToString(array $items): string
     {
         $itemDescriptions = array_map(function ($item) {
             return sprintf(
                 "id: %s, metadata: %s",
                 $item->getId() ?? 'Unknown',
-                implode(', ', $item->getMetadata()) ?? 'Unknown',
+                $this->getMetaDataItemsAsString($item->getMetadata() ?? []),
             );
         }, $items);
 
         return implode("\n", $itemDescriptions);
+    }
+
+    /**
+     * get clothing item meta asa a string
+     *
+     * @param array $metadata
+     * @return string
+     */
+    private function getMetaDataItemsAsString(array $metadata): string
+    {
+        $metadataStrings = [];
+        foreach ($metadata as $key => $value) {
+            if (is_array($value)) {
+                $value = implode(', ', $value);
+            }
+            $metadataStrings[] = sprintf("%s: %s", $key, $value);
+        }
+        return implode(", ", $metadataStrings);
     }
 
 }

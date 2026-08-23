@@ -126,21 +126,26 @@ final class WardrobeService
         ];
     }
 
-    public function getClothingItemRecommendations(string $prompt, ?UploadedFile $image = null): array
+    public function getClothingItemRecommendations(string $prompt, ?array $images = []): array
     {
-        $base64Image = null;
+        $base64Images = [];
         
-        //base 64 endoce image if passed in
-        if ($image) {
-            $imageContent = file_get_contents($image->getRealPath());
-            $base64Image = base64_encode($imageContent);
+        if ($images && count($images) > 0) {
+            $imageContent = file_get_contents($images[0]->getRealPath());
+            foreach ($images as $image) {
+                if (!$image instanceof UploadedFile) {
+                    throw new \RuntimeException('Invalid image file uploaded under field "files"');
+                }
+                $imageContent = file_get_contents($image->getRealPath());
+                $base64Images[] = base64_encode($imageContent);
+            }
         }
 
         //collect all items from the user's wardrobe and send them to the AI agent along with the prompt and image to get recommendations.
         $clothingItemsFromDb = $this->entityManager->getRepository(ClothingItem::class)->findByUserAndMetaData($this->security->getUser());
 
         //return the recommendations as an array of clothing item data.
-        $recommendations = $this->visionAiAgentService->recommendOutfits($prompt, $clothingItemsFromDb, $base64Image);
+        $recommendations = $this->visionAiAgentService->recommendOutfits($prompt, $clothingItemsFromDb, $base64Images);
         //if the AI agent fails, return an empty array.
         
         return array_map(function (ClothingItem $item) {

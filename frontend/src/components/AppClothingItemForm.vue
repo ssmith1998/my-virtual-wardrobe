@@ -16,7 +16,7 @@
         style="max-width: 300px"
         />
         <div class="q-mt-md">
-            <q-btn color="primary" label="Add Item" type="submit" />
+            <q-btn color="primary" label="Add Item" type="submit" :disable="!itemName || !itemImage" />
         </div>
     </form>
 </template>

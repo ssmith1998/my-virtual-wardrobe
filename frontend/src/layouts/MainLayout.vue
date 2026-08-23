@@ -32,6 +32,11 @@ const linksList = [
     icon: 'photo_library',
     link: 'wardrobe',
   },
+  {
+    title: 'Outfit Explorer',
+    icon: 'explore',
+    link: 'outfit-explorer',
+  },
 ]
 
 const leftDrawerOpen = ref(false)
