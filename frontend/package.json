@@ -12,7 +12,11 @@
         "test": "echo \"No test specified\" && exit 0",
         "dev": "quasar dev",
         "build": "quasar build",
-        "postinstall": "quasar prepare"
+        "postinstall": "quasar prepare",
+        "addCapacitor": "quasar mode add capacitor",
+        "capacitorIos": "quasar dev -m capacitor -T ios",
+        "capacitorAndroid": "quasar dev -m capacitor -T android",
+        "capacitorBuild": "quasar build -m capacitor"
     },
     "dependencies": {
         "@quasar/extras": "^1.16.4",
