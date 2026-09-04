@@ -1,6 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 
-export function usePoll(fetchFn, intervalMs = 5000) {
+export function usePoll(fetchFn, intervalMs = 100000) {
   const data = ref(null)
   const error = ref(null)
   const running = ref(false)
