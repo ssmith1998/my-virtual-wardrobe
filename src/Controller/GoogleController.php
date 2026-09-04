@@ -106,4 +106,17 @@ class GoogleController extends AbstractController
             $isEnabled = $this->googleService->isGoogleCalendarIntegrationEnabled($user);
             return $this->json(['enabled' => $isEnabled]);
         }
+
+        #[Route('/api/calendar/google/revoke', name: 'google_calendar_revoke_integration', methods: ['POST'])]
+        public function revokeGoogleCalendarIntegration(): JsonResponse
+        {
+            /** @var User|null $user */
+            $user = $this->getUser();
+            if (!$user) {
+                return $this->json(['error' => 'User not authenticated'], 401); 
+            }
+
+            $this->googleService->revokeGoogleCalendarIntegration($user);
+            return $this->json(['message' => 'Google Calendar integration revoked']);
+        }
 }

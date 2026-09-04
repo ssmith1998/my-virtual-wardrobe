@@ -5,6 +5,7 @@ export const endpoints = {
   calendar: '/settings/calendar',
   googleAuth: '/auth/google',
   calendarEnabled: '/calendar/google/enabled',
+  revokeGoogleCalendar: '/calendar/google/revoke'
 };
 
 export default endpoints;
@@ -21,5 +22,10 @@ export const getGoogleAuthUrl = async () => {
 
 export const pollCalendarEnabledStatus = async () => {
   const response = await get(endpoints.calendarEnabled)
+  return response;
+}
+
+export const revokeGoogleCalendarIntegration = async () => {
+  const response = await post(endpoints.revokeGoogleCalendar)
   return response;
 }

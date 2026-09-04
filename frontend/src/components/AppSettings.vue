@@ -13,7 +13,7 @@
       color="pink"
       icon="calendar_today"
       label="Enable Google Calendar Integration"
-      @update:model-value="onEnableCalendarIntegration"
+      @update:model-value="onEnableDisableCalendarIntegration"
     />
   </div>
 
@@ -21,7 +21,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { pollCalendarEnabledStatus } from '../api/settings'
+import { pollCalendarEnabledStatus, revokeGoogleCalendarIntegration } from '../api/settings'
 import { usePoll } from '../composables/usePoll'
 
 const calendarEnabled = ref(false);
@@ -47,7 +47,7 @@ watch(pollError, (err) => {
 onMounted(() => startPoll(true))
 onUnmounted(() => stopPoll())
 
-const onEnableCalendarIntegration = async (value) => {
+const onEnableDisableCalendarIntegration = async (value) => {
   // value is the new boolean from the toggle
   calendarEnabled.value = value
   loading.value = true
@@ -58,6 +58,12 @@ const onEnableCalendarIntegration = async (value) => {
         window.location.href = 'https://localhost:8000/api/auth/google'
       } catch (e) {
         console.error('Failed to redirect to Google auth', e)
+      }
+    } else {
+      // If disabling integration, call the API to revoke access
+      const response = await revokeGoogleCalendarIntegration();
+      if (!response.ok) {
+        throw new Error('Failed to revoke Google Calendar integration')
       }
     }
   } catch (err) {

@@ -102,4 +102,14 @@ public function __construct(
         return $user->getGoogleId() !== null && $user->getGoogleRefreshToken() !== null;
     }
 
+    public function revokeGoogleCalendarIntegration(User $user): void
+    {
+        $user->setGoogleId(null);
+        $user->setGoogleRefreshToken(null);
+        $user->setGoogleAccessTokenExpiry(null);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+    }
+
 }
