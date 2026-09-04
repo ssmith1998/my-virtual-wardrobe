@@ -3,7 +3,7 @@ import { useAppStore } from '../stores/appStore';
 import {logout} from '../composables/useApp';
 
 export const instance = axios.create({
-  baseURL: 'https://myvirtualwardrobe.test/api',
+  baseURL: 'https://localhost:8000/api',
   timeout: 3000, // 3 seconds timeout
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +12,7 @@ export const instance = axios.create({
 
 export const get = async (url) => {
     try {
-        const response = await instance.get(url);
+    const response = await instance.get(url, { withCredentials: true });
         console.log('Response:', response.data);
         return response.data;
     } catch (error) {

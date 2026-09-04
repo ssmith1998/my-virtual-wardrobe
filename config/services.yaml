@@ -46,5 +46,9 @@ services:
         arguments:
             $apiKey: '%env(OPEN_WEATHER_API_KEY)%'
 
+    App\Controller\GoogleController:
+        arguments:
+            $frontendUrl: '%env(FRONTEND_URL)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

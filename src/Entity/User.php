@@ -26,14 +26,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'json')]
     private array $roles = [];
 
-    #[ORM\Column(type: 'string')]
-    private string $password;
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $password;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $googleId = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $googleRefreshToken = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTime $googleAccessTokenExpiry = null;
 
     public function __construct()
     {
@@ -93,12 +99,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getPassword(): string
+    public function getPassword(): ?string
     {
         return $this->password;
     }
 
-    public function setPassword(string $password): self
+    public function setPassword(?string $password): self
     {
         $this->password = $password;
 
@@ -126,5 +132,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    public function getGoogleRefreshToken(): ?string
+    {
+        return $this->googleRefreshToken;
+    }
+
+    public function setGoogleRefreshToken(?string $googleRefreshToken): static
+    {
+        $this->googleRefreshToken = $googleRefreshToken;
+
+        return $this;
+    }
+
+    public function getGoogleAccessTokenExpiry(): ?\DateTime
+    {
+        return $this->googleAccessTokenExpiry;
+    }
+
+    public function setGoogleAccessTokenExpiry(?\DateTime $googleAccessTokenExpiry): static
+    {
+        $this->googleAccessTokenExpiry = $googleAccessTokenExpiry;
+
+        return $this;
+    }
+
+    public function isGoogleAccessTokenExpired(): bool
+    {
+        if ($this->googleAccessTokenExpiry === null) {
+            return true; // If there's no expiry date, consider it expired
+        }
+
+        $now = new \DateTime();
+        return $now >= $this->googleAccessTokenExpiry;
     }
 }
