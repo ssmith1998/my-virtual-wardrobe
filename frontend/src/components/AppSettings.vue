@@ -54,6 +54,7 @@ const onEnableDisableCalendarIntegration = async (value) => {
   try {
     // If enabling integration, request the Google OAuth URL and navigate there
     if (value) {
+        calendarEnabled.value = true
       try {
         window.location.href = 'https://localhost:8000/api/auth/google'
       } catch (e) {
@@ -65,6 +66,7 @@ const onEnableDisableCalendarIntegration = async (value) => {
       if (!response.ok) {
         throw new Error('Failed to revoke Google Calendar integration')
       }
+      calendarEnabled.value = false
     }
   } catch (err) {
     console.error('Failed to update calendar setting', err)
