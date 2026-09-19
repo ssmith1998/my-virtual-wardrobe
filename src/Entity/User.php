@@ -167,4 +167,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $now = new \DateTime();
         return $now >= $this->googleAccessTokenExpiry;
     }
+
+    public function isGoogleCalendarIntegrationEnabled(): bool
+    {
+        return $this->googleId !== null && $this->googleRefreshToken !== null;
+    }
 }

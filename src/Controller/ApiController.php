@@ -131,10 +131,7 @@ final class ApiController extends AbstractController
         try {
             $recommendations = $this->wardrobeService->getClothingItemRecommendations($prompt, $images);
         } catch (\Throwable $exception) {
-            return $this->json([
-                'error' => $exception->getMessage(),
-                'trace' => $exception->getTraceAsString()
-                ], 400);
+            return $this->json(['error' => $exception->getMessage()], 500);
         }
 
         return $this->json($recommendations);

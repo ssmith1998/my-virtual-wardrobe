@@ -6,6 +6,8 @@ use App\Entity\ClothingItem;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use App\Service\WeatherService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 
 final class VisionAiAgentService
 {
@@ -14,8 +16,12 @@ final class VisionAiAgentService
         private readonly S3UploadService $s3UploadService,
         private readonly EntityManagerInterface $entityManager,
         private readonly WeatherService $weatherService,
+        private readonly GoogleService $googleCalendarService,
+        private readonly Security $security,
+        private readonly LoggerInterface $logger,
         private readonly string $visionAgentUrl,
         private readonly ?string $apiKey,
+        private readonly string $model
     ) {
     }
     /**
@@ -30,94 +36,109 @@ final class VisionAiAgentService
     {
 
         $currentWeather = $this->weatherService->getWeather();
+        $this->logger->info('Current weather: {weather}', ['weather' => json_encode($currentWeather)]);
+
+        try {
+            $googleCalendarEvents = $this->googleCalendarService->getGoogleCalendarEvents($this->security->getUser());
+
+        } catch( \Exception $e) {
+            $this->logger->error('Error fetching calendar events: {error}', ['error' => $e->getMessage()]);
+            return [
+                'error' => 'Error fetching calendar events: ' . $e->getMessage()
+            ];
+        }
+
+
+        $this->logger->info('Current Google Calendar events: {events}', ['events' => json_encode($googleCalendarEvents)]);
 
         $prompt = sprintf(
             "You are a fashion expert. Given the following prompt, recommend clothing items from the list of clothing items.
+            If there are calendar events, consider them when making recommendations.
             Try and give full outfits if possible.
             Return only JSON with an array of clothing item recommendations. 
             Each recommendation should have a the id of the clothing item and a brief explanation of why it was recommended.
-             Prompt: %s\n\nAvailable clothing items:\n%s\n\nCurrent weather: %s, %s°C, Humidity: %s%%",
+             Prompt: %s\n\nAvailable clothing items:\n%s\n\nCurrent weather: %s, %s°C, Humidity: %s%%\n\nCurrent Google Calendar Events:\n%s",
             $prompt,
             $this->arrayOfItemsToString($clothingItems),
             $currentWeather['condition'],
             $currentWeather['temperature'],
-            $currentWeather['humidity']
+            $currentWeather['humidity'],
+            $this->googleCalendarService->eventsToString($googleCalendarEvents)
         );
 
         $promptImages = [];
 
         foreach ($base64Images as $base64Image) {
-            $promptImages[] = [
-                'type' => 'image_url',
-                'image_url' => [
-                    'url' => 'data:image/jpeg;base64,' . $base64Image,
-                ],
-            ];
+            $promptImages[] = $this->createImageInputPart($base64Image, 'image/jpeg');
         }
 
         $payload = [
-            'model' => 'google/gemma-4-31B-it:cerebras',
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => [
+            'model' => $this->model,
+            'input' => [
                         [
                             'type' => 'text',
-                            "text" => $prompt
+                            'text' => $prompt
                         ],
-                        ...$promptImages
-                    ],
-                ],
+                        
+                        ...$promptImages 
             ],
-            'max_tokens' => 500,
         ];
 
         if(!$base64Images) {
             $payload = [
-                'model' => 'google/gemma-4-31B-it:cerebras',
-                'messages' => [
+                'model' => $this->model,
+                'input' => [
                     [
-                        'role' => 'user',
-                        'content' => [
-                            [
-                                'type' => 'text',
-                                "text" => $prompt
-                            ],
-                        ],
+                        'type' => 'text',
+                        'text' => $prompt
                     ],
                 ],
-                'max_tokens' => 500,
             ];
         }
+
+        $this->logger->info('Sending request to Vision AI Agent with payload: {payload}', ['payload' => json_encode($payload)]);
+        
 
         try {
             $response = $this->httpClient->request('POST', $this->visionAgentUrl, [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'x-goog-api-key' => $this->apiKey,
                     'Content-Type' => 'application/json',
                 ],
                 'json' => $payload,
-                'timeout' => 600,
-                'max_duration' => 600,
             ]);
         } catch (\Exception $e) {
-            throw new \RuntimeException('Error communicating with Vision AI Agent: ' . $e->getMessage());
+            $this->logger->error('Error communicating with Vision AI Agent: ' . $e->getMessage());
+            return [
+                'error' => 'Error communicating with Vision AI Agent: ' . $e->getMessage()
+            ];
         }
 
         $response = $response->toArray();
 
-        if(isset($response['choices'][0]['message']['content'])) {
+        $this->logger->info('Response content from gemini: {response}', ['response' => json_encode($response['steps'][1]['content'][0]['text'] ?? 'key does not exist')]);
+
+        if(isset($response['steps'][1]['content'][0]['text'])) {
             // Remove ```json and ```
-            $content = preg_replace('/^```json\s*/i', '', $response['choices'][0]['message']['content']);
+            $content = preg_replace('/^```json\s*/i', '', $response['steps'][1]['content'][0]['text']);
             $content = preg_replace('/\s*```$/', '', $content);
+            $this->logger->info('Cleaned content from Vision AI Agent: {content}', ['content' => $content]);
             $recommendations = json_decode($content, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \RuntimeException('Error decoding JSON response from Vision AI Agent: ' . json_last_error_msg());
+                $this->logger->error('Error decoding JSON response from Vision AI Agent: ' . json_last_error_msg());
             }
+
+            $this->logger->info('Decoded recommendations from Vision AI Agent: {recommendations}', ['recommendations' => json_encode($recommendations)]);
 
             if (!isset($recommendations[0])) {
                 return [];
             }
+
+            $recommendations = array_map(function($item) {
+                return $item['id'] ?? null;
+            }, $recommendations);
+
+            $this->logger->info('Extracted clothing item IDs from recommendations: {recommendationIds}', ['recommendationIds' => json_encode($recommendations)]);
 
             $recommendations = $this->entityManager->getRepository(ClothingItem::class)->findBy(['id' => $recommendations]);
 
@@ -127,7 +148,10 @@ final class VisionAiAgentService
 
             return $recommendations;
         } else {
-            throw new \RuntimeException('Invalid response from Vision AI Agent: ' . json_encode($response));
+            $this->logger->error('Invalid response from Vision AI Agent: ' . json_encode($response));
+            return [
+                'error' => 'Invalid response from Vision AI Agent: ' . json_encode($response)
+            ];
         }
     }
 
@@ -136,46 +160,41 @@ final class VisionAiAgentService
         $image = $this->s3UploadService->downloadFile($filename);
         $image = base64_encode($image);
         $payload = [
-        'model' => 'google/gemma-4-31B-it:cerebras',
-        'messages' => [
+        'model' => $this->model,
+        'input' => [
             [
-                'role' => 'user',
-                'content' => [
-                    [
-                        'type' => 'text',
-                        "text" => "Analyse this clothing item. Return only JSON with category, colour, pattern, material and style."
-                    ],
-                    [
-                        'type' => 'image_url',
-                        'image_url' => [
-                            'url' => 'data:image/jpeg;base64,' . $image,
-                        ],
-                    ],
-                ],
+                'type' => 'text',
+                'text' => "Analyse this clothing item. Return only JSON with category, colour, pattern, material and style."
             ],
+            $this->createImageInputPart($image, 'image/jpeg'),
         ],
-        'max_tokens' => 100,
-];
+
+        ];
 
         try {
-            $response = $this->httpClient->request('POST', $this->visionAgentUrl, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => $payload,
-            'timeout' => 600,
-            'max_duration' => 600,
-        ]);
+          $response = $this->httpClient->request('POST', $this->visionAgentUrl, [
+                'headers' => [
+                    'x-goog-api-key' => $this->apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $payload,
+            ]);
         } catch (\Exception $e) {
-            throw new \RuntimeException('Error communicating with Vision AI Agent: ' . $e->getMessage());
+            $this->logger->error('Error communicating with Vision AI Agent: ' . $e->getMessage());
+            return [
+                'error' => 'Error communicating with Vision AI Agent: ' . $e->getMessage()
+            ];
         }
 
-        $response = $response->toArray();
+        $this->logger->info('Response content from gemini: {response}', ['response' => json_encode($response->getContent(false))]);
 
-        if(isset($response['choices'][0]['message']['content'])) {
+        $response = $response->toArray();
+        $this->logger->info('Response content from gemini: {response}', ['response' => json_encode($response['steps'][1]['content'][0]['text'] ?? 'key does not exist')]);
+
+
+        if(isset($response['steps'][1]['content'][0]['text'])) {
             // Remove ```json and ```
-            $content = preg_replace('/^```json\s*/i', '', $response['choices'][0]['message']['content']);
+            $content = preg_replace('/^```json\s*/i', '', $response['steps'][1]['content'][0]['text']);
             $content = preg_replace('/\s*```$/', '', $content);
             $metadata = json_decode($content, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -193,6 +212,15 @@ final class VisionAiAgentService
      * @param array $items
      * @return string
      */
+    private function createImageInputPart(string $base64Image, string $mimeType): array
+    {
+        return [
+            'type' => 'image',
+            'mime_type' => $mimeType,
+            'data' => $base64Image,
+        ];
+    }
+
     private function arrayOfItemsToString(array $items): string
     {
         $itemDescriptions = array_map(function ($item) {

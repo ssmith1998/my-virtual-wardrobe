@@ -4,16 +4,18 @@ namespace App\Service;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Google\Client;
-use KnpU\OAuth2ClientBundle\Client\Provider\GoogleClient;
+use Google\Service\Calendar;
 use League\OAuth2\Client\Provider\GoogleUser;
 use League\OAuth2\Client\Token\AccessTokenInterface;
+use Psr\Log\LoggerInterface;
 
 class GoogleService
 {
 
 public function __construct(
         private readonly Client $googleClient,
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly LoggerInterface $logger
     ) {
     }
     public function saveUser(GoogleUser $googleUser, AccessTokenInterface $accessToken): User
@@ -69,13 +71,17 @@ public function __construct(
     {
         $tokenHasExpired = $user->isGoogleAccessTokenExpired();
         $refreshToken = $user->getGoogleRefreshToken();
-        if (!$refreshToken || !$tokenHasExpired) {
+        if (!$refreshToken && !$tokenHasExpired) {
             return null;
         }
+
+        $this->logger->info('Refresh Token: {refreshToken}', ['refreshToken' => $refreshToken]);
 
         $this->googleClient->setAccessType('offline');
         $this->googleClient->setPrompt('consent');
         $this->googleClient->refreshToken($refreshToken);
+
+        $this->logger->info('Access token:', ['token' => $this->googleClient->getAccessToken()]);
 
         return $this->googleClient->getAccessToken();
     }
@@ -99,7 +105,7 @@ public function __construct(
 
     public function isGoogleCalendarIntegrationEnabled(User $user): bool
     {
-        return $user->getGoogleId() !== null && $user->getGoogleRefreshToken() !== null;
+        return $user->isGoogleCalendarIntegrationEnabled();
     }
 
     public function revokeGoogleCalendarIntegration(User $user): void
@@ -110,6 +116,70 @@ public function __construct(
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
+    }
+
+    /**
+     * Get Google Calendar events for the authenticated user
+     * 
+     * @param User $user
+     * @return array
+     */
+    public function getGoogleCalendarEvents(User $user): array
+    {
+        if (!$user->isGoogleCalendarIntegrationEnabled()) {
+            return [];
+        }
+
+        $client = $this->getGoogleClientForUser($user);
+        $service = new Calendar($client);
+
+        $calendarId = 'primary';
+        $today = new \DateTime();
+        $tomorrow = (clone $today)->modify('+1 day');
+        $optParams = [
+            'maxResults' => 10,
+            'orderBy' => 'startTime',
+            'singleEvents' => true,
+            'timeMin' => $today->format(\DateTime::RFC3339),
+            // 'timeMax' => $tomorrow->format(\DateTime::RFC3339),
+        ];
+
+        try {
+            $results = $service->events->listEvents($calendarId, $optParams);
+        } catch (\Exception $e) {
+            // Handle the error, e.g., log it or return an empty array
+            $this->logger->error('Error fetching Google Calendar events: {error}', ['error' => $e->getMessage()]);
+            return [];
+        }
+
+        return array_map(function($event) {
+            return [
+                'id' => $event->getId(),
+                'summary' => $event->getSummary(),
+                'description' => $event->getDescription(),
+                'start' => $event->getStart()->getDate(),
+                'end' => $event->getEnd()->getDate(),
+                'location' => $event->getLocation(),
+            ];
+        }, $results->getItems());
+    }
+
+    public function eventsToString(array $events): string
+    {
+        $eventStrings = array_map(function($event) {
+            $start = isset($event['start']) ? $event['start'] : 'N/A';
+            $end = isset($event['end']) ? $event['end'] : 'N/A';
+            return sprintf(
+                "Event: %s\nDescription: %s\nStart: %s\nEnd: %s\nLocation: %s\n",
+                $event['summary'] ?? 'N/A',
+                $event['description'] ?? 'N/A',
+                $start,
+                $end,
+                $event['location'] ?? 'N/A'
+            );
+        }, $events);
+
+        return implode("\n", $eventStrings);
     }
 
 }

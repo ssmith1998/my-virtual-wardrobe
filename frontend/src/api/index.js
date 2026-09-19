@@ -4,7 +4,7 @@ import {logout} from '../composables/useApp';
 
 export const instance = axios.create({
   baseURL: 'https://localhost:8000/api',
-  timeout: 3000, // 3 seconds timeout
+  timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },

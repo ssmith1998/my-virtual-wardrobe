@@ -74,24 +74,10 @@ class GoogleController extends AbstractController
         ]);
     }
     }
-        #[Route('/api/calendar/google', name: 'google_calendar_integration', methods: ['GET'])]
-        public function googleCalendarIntegration(): JsonResponse
+        #[Route('/api/calendar/google/events', name: 'google_calendar_events', methods: ['GET'])]
+        public function getGoogleCalendarEvents(): JsonResponse
         {
-            try {
-              // Get the Google client
-              $googleClient = $this->googleService->getGoogleClientForUser($this->getUser());
-
-                $calendar = new Calendar($googleClient);
-
-                $events = $calendar->events->listEvents('primary');
-
-                return $this->json([
-                    'message' => 'Google Calendar integration successful',
-                    'events' => $events
-                ]);
-            } catch (\Exception $e) {
-                return $this->json(['error' => 'Google Calendar integration failed: ' . $e->getMessage()], 400);
-            }
+          return $this->json($this->googleService->getGoogleCalendarEvents($this->getUser()));
         }
 
         #[Route('/api/calendar/google/enabled', name: 'google_calendar_enabled_status', methods: ['GET'])]

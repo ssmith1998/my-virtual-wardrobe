@@ -29,6 +29,7 @@ services:
         arguments:
             $visionAgentUrl: '%env(VISION_AI_AGENT_URL)%'
             $apiKey: '%env(VISION_AI_AGENT_API_KEY)%'
+            $model: '%env(VISION_AI_AGENT_MODEL)%'
 
     App\Service\S3UploadService:
         arguments:
