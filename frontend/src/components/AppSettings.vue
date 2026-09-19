@@ -62,10 +62,7 @@ const onEnableDisableCalendarIntegration = async (value) => {
       }
     } else {
       // If disabling integration, call the API to revoke access
-      const response = await revokeGoogleCalendarIntegration();
-      if (!response.ok) {
-        throw new Error('Failed to revoke Google Calendar integration')
-      }
+      await revokeGoogleCalendarIntegration();
       calendarEnabled.value = false
     }
   } catch (err) {
