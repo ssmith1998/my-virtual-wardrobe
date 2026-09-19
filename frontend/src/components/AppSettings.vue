@@ -1,22 +1,47 @@
 <template>
-<h6>Settings</h6>
+  <div class="settings-page">
+    <q-card flat bordered class="settings-card">
+      <q-card-section class="header-section">
+        <div class="row items-center no-wrap">
+          <div class="icon-wrap q-mr-md">
+            <q-icon name="settings" size="28px" color="primary" />
+          </div>
+          <div>
+            <div class="text-h5 text-weight-medium">Settings</div>
+            <div class="text-subtitle2 text-grey-7">Manage your wardrobe preferences.</div>
+          </div>
+        </div>
+      </q-card-section>
 
- <div v-if="initialLoading" class="settings-loading">
-    <q-spinner-dots size="40" color="primary" />
-    <span style="margin-left:12px">Loading settings…</span>
+      <q-separator />
+
+      <q-card-section>
+        <div v-if="initialLoading" class="settings-loading">
+          <q-spinner-dots size="40" color="primary" />
+          <span class="loading-label">Loading settings…</span>
+        </div>
+
+        <div v-else class="settings-row">
+          <div class="title-group">
+            <div class="text-subtitle1 text-weight-medium">Google Calendar</div>
+            <div class="text-body2 text-grey-7">
+              Enable calendar sync to factor your schedule into outfit recommendations.
+            </div>
+          </div>
+
+          <q-toggle
+            v-model="calendarEnabled"
+            :disable="loading"
+            color="primary"
+            icon="calendar_today"
+            label="Enable integration"
+            size="lg"
+            @update:model-value="onEnableDisableCalendarIntegration"
+          />
+        </div>
+      </q-card-section>
+    </q-card>
   </div>
-
- <div v-else>
-    <q-toggle
-      v-model="calendarEnabled"
-      :disable="loading"
-      color="pink"
-      icon="calendar_today"
-      label="Enable Google Calendar Integration"
-      @update:model-value="onEnableDisableCalendarIntegration"
-    />
-  </div>
-
 </template>
 
 <script setup>
@@ -74,3 +99,64 @@ const onEnableDisableCalendarIntegration = async (value) => {
   }
 }
 </script>
+
+<style scoped>
+.settings-page {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.settings-card {
+  width: min(100%, 720px);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.header-section {
+  padding: 24px 24px 18px;
+}
+
+.icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(103, 80, 164, 0.12);
+}
+
+.settings-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: #666;
+}
+
+.loading-label {
+  margin-left: 12px;
+  font-size: 0.95rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 8px 4px;
+}
+
+.title-group {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
